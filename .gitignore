@@ -1,0 +1,17 @@
+# Virtual Environment
+venv/
+/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Data files (biasanya besar dan tidak di-version control)
+data/
+
+# IDE/Editor specific
+.vscode/
+.idea/
