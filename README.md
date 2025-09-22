@@ -1,4 +1,5 @@
 # Analisis Media Timnas Indonesia Menuju Piala Dunia 2026
+<img width="2560" height="1709" alt="image" src="https://github.com/user-attachments/assets/5c2d9905-2a8e-4089-a71c-e9dfa0117933" />
 
 Proyek ini bertujuan untuk mengumpulkan dan menganalisis sentimen publik serta tren pemberitaan mengenai "Timnas Indonesia Piala Dunia 2026" dari berbagai sumber media sosial (Facebook) dan portal berita online Indonesia.
 
