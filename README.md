@@ -6,6 +6,8 @@ Proyek ini bertujuan untuk menganalisis dan membandingkan narasi seputar **Timna
 
 - **Media Berita:** Diwakili oleh artikel dari portal berita online terkemuka Indonesia, yaitu **Detik.com** dan **Kompas.com**. Sumber ini cenderung menyajikan informasi faktual dan objektif.
 - **Opini Publik:** Diwakili oleh komentar dari video-video relevan di **YouTube**. Sumber ini kaya akan sentimen emosional, baik dukungan (pro) maupun kritik (kontra).
+<img width="1831" height="939" alt="image" src="https://github.com/user-attachments/assets/9e878d67-eab1-4b21-a8d5-8cecc6979bda" />
+
 
 Dengan membandingkan kedua sumber ini, kita dapat memperoleh wawasan mendalam tentang bagaimana media membentuk narasi dan bagaimana publik meresponsnya, serta topik-topik apa yang menjadi fokus utama di masing-masing ranah.
 
@@ -25,11 +27,6 @@ Proyek ini dibangun menggunakan serangkaian teknologi dan library Python yang mo
 - **Manajemen Kredensial:** `python-dotenv` untuk mengelola API Key secara aman.
 
 ## ⚙️ Arsitektur & Alur Kerja Pipeline
-
-Proyek ini dirancang dengan arsitektur modular berbasis "stasiun kerja", di mana setiap tahap pipeline dapat dijalankan secara independen.
-
-![Alur Kerja Pipeline](https://via.placeholder.com/800x250.png?text=Gambar+Diagram+Alur+Kerja+di+sini)
-*(Anda bisa mengganti link di atas dengan gambar diagram alur kerja yang Anda buat)*
 
 **1. Stasiun Pengumpulan Data (Crawling)**
    - **`src/main.py` (untuk Berita):** Menjalankan crawler `detik_crawler.py` dan `kompas_crawler.py` secara paralel untuk mengumpulkan artikel berita.
