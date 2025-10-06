@@ -1,5 +1,8 @@
 # Analisis Sentimen: Narasi Media vs Opini Publik Terkait Timnas Indonesia Menuju Piala Dunia 2026
 
+Web Bisa di Akses di Web ini
+https://indokepildun.streamlit.app/
+
 ## 📜 Ringkasan Proyek
 
 Proyek ini bertujuan untuk menganalisis dan membandingkan narasi seputar **Timnas Indonesia** dalam kualifikasi Piala Dunia 2026 dari dua sudut pandang yang berbeda: **media berita profesional** dan **opini publik**.
