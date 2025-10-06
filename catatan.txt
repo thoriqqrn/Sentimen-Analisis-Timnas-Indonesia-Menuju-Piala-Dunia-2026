@@ -1,0 +1,1 @@
+python run_analysis.py --force-model nlptown/bert-base-multilingual-uncased-sentiment

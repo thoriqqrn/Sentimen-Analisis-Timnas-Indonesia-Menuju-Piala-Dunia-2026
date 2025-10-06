@@ -15,3 +15,7 @@ data/
 # IDE/Editor specific
 .vscode/
 .idea/
+
+# --- TAMBAHKAN BARIS INI ---
+# File cookies rahasia
+cookies.json

@@ -1,63 +1,90 @@
-# src/main.py
+# src/main.py (Perbaikan Final untuk Argumen Facebook)
 
 import pandas as pd
-from crawlers.news_portal_crawler import crawl_detik_news
+import os
+import asyncio
+# Import semua crawler
+from crawlers.detik_crawler import crawl_detik
+from crawlers.kompas_crawler import crawl_kompas
+from crawlers.bola_crawler import crawl_bola
+from crawlers.facebook_crawler import crawl_facebook
+# from crawlers.twitter_crawler import crawl_twitter # Kita biarkan import-nya di sini
+# Import semua utilitas
 from preprocessing.cleaner import clean_text, format_date
-from analysis.word_frequency import calculate_word_frequency, plot_top_words
-from analysis.sentiment_analyzer import translate_to_english, analyze_sentiment, plot_sentiment_distribution
-# <-- IMPORT FUNGSI ANALISIS TREN BARU
-from analysis.trend_analyzer import analyze_posts_over_time
+from analysis.sentiment_analyzer import translate_to_english, analyze_sentiment
+
+async def run_news_crawlers():
+    # Fungsi ini sudah benar, tidak perlu diubah
+    print("\n[INFO] Menjalankan crawler portal berita secara paralel...")
+    metadata_tasks = [crawl_detik(total_pages=70), crawl_kompas(total_pages=70), crawl_bola(total_pages=1)]
+    results_nested_metadata = await asyncio.gather(*metadata_tasks)
+    all_articles_metadata = [item for sublist in results_nested_metadata for item in sublist]
+    print(f"\n[INFO] Metadata dari {len(all_articles_metadata)} artikel berita berhasil diambil. Mengambil teks lengkap...")
+    CONCURRENT_LIMIT = 5
+    semaphore = asyncio.Semaphore(CONCURRENT_LIMIT)
+    async def fetch_full_text_with_limit(task):
+        async with semaphore:
+            await asyncio.sleep(1) 
+            full_text = await task.pop('full_text_coro')
+            task['full_text'] = full_text
+            return task
+    full_article_tasks = [fetch_full_text_with_limit(task) for task in all_articles_metadata]
+    results = await asyncio.gather(*full_article_tasks, return_exceptions=True)
+    final_articles = [res for res in results if not isinstance(res, Exception)]
+    print(f"[INFO] Selesai mengambil teks lengkap berita. Berhasil: {len(final_articles)} artikel.")
+    return pd.DataFrame(final_articles)
 
 def main():
-    """
-    Fungsi utama untuk menjalankan seluruh pipeline proyek.
-    """
-    print("=============================================")
-    print("Memulai Pipeline Analisis Media Timnas 2026")
-    print("=============================================")
+    """Pipeline final yang menggabungkan data dari Berita & Facebook."""
+    print("======================================================")
+    print("Memulai Pipeline Gabungan Timnas 2026")
+    print("======================================================")
 
-    # Path file
-    processed_data_path = 'data/processed/cleaned_data.csv'
+    os.makedirs('data/raw', exist_ok=True)
+    os.makedirs('data/processed', exist_ok=True)
+    os.makedirs('data/final', exist_ok=True)
     final_data_path = 'data/final/analysis_results.csv'
+
+    # --- TAHAP 1: DATA COLLECTION ---
+    df_news = asyncio.run(run_news_crawlers())
     
-    # (Kita akan lewati crawling & preprocessing untuk fokus pada analisis)
-    print("\n[INFO] Menggunakan data yang sudah diproses dari `data/processed/cleaned_data.csv`.")
-    try:
-        df_processed = pd.read_csv(processed_data_path)
-    except FileNotFoundError:
-        print(f"ERROR: File {processed_data_path} tidak ditemukan. Harap jalankan pipeline lengkap sekali lagi.")
+    # --- PERBAIKAN DI SINI ---
+    df_facebook = crawl_facebook(target_id='timnasindonesia', scroll_count=50) 
+    # -------------------------
+    
+    # Untuk sementara kita nonaktifkan Twitter
+    df_twitter = pd.DataFrame() 
+
+    df_crawled = pd.concat([df_news, df_facebook, df_twitter], ignore_index=True)
+
+    if df_crawled is None or df_crawled.empty:
+        print("\n[ERROR] GAGAL: Tidak ada data yang berhasil di-crawl dari sumber manapun.")
         return
 
-    # --- TAHAP ANALISIS & VISUALISASI ---
-    print("\n[ANALISIS] Memulai proses analisis data...")
-    
-    # 3.1 Analisis Frekuensi Kata
-    print("   - Menganalisis frekuensi kata...")
-    top_words = calculate_word_frequency(df_processed['cleaned_title'])
-    plot_top_words(top_words, 'reports/figures/top_words_barchart.png')
-        
-    # 3.2 Analisis Sentimen
-    print("   - Menganalisis sentimen...")
-    df_final = df_processed.copy() # Buat salinan untuk data final
-    df_final['translated_title'] = df_final['cleaned_title'].apply(translate_to_english)
-    df_final['sentiment'] = df_final['translated_title'].apply(analyze_sentiment)
-    sentiment_distribution = df_final['sentiment'].value_counts()
-    print("\n   Distribusi Sentimen:")
-    print(sentiment_distribution)
-    plot_sentiment_distribution(sentiment_distribution, 'reports/figures/sentiment_pie_chart.png')
-    
-    # 3.3 Analisis Tren Waktu
-    print("\n   - Menganalisis tren pemberitaan per hari...")
-    # Pastikan kolom tanggal sudah dalam format datetime untuk analisis
-    df_final['formatted_date'] = pd.to_datetime(df_final['formatted_date']) 
-    analyze_posts_over_time(df_final)
+    df_crawled.to_csv('data/raw/combined_raw_data.csv', index=False)
+    print(f"\n[INFO] Total {len(df_crawled)} data dari semua sumber berhasil digabungkan.")
 
-    # Simpan hasil akhir yang sudah lengkap
+    # --- TAHAP 2 & 3 (Tidak ada perubahan) ---
+    print(f"\n[PREPROCESSING] Memulai...")
+    if 'title' not in df_crawled.columns:
+        df_crawled['title'] = df_crawled['full_text'].str[:70] + '...'
+    df_crawled['title'].fillna(df_crawled['full_text'].str[:70] + '...', inplace=True)
+    df_crawled['cleaned_title'] = df_crawled['title'].apply(clean_text)
+    df_crawled['cleaned_full_text'] = df_crawled['full_text'].apply(clean_text)
+    df_crawled['formatted_date'] = df_crawled['publish_date'].apply(format_date)
+    df_crawled.dropna(subset=['formatted_date', 'full_text'], inplace=True)
+    df_final = df_crawled.copy()
+    print("\n[ANALISIS] Memulai proses analisis sentimen...")
+    print("   - Menerjemahkan ringkasan teks...")
+    df_final['text_for_translation'] = df_final['cleaned_full_text'].str[:4900]
+    df_final['translated_text'] = df_final['text_for_translation'].apply(translate_to_english)
+    df_final['sentiment'] = df_final['translated_text'].apply(analyze_sentiment)
     df_final.to_csv(final_data_path, index=False)
-    print(f"\n   Data dengan hasil analisis lengkap disimpan ke: {final_data_path}")
+    print(f"\n[SUKSES] Data gabungan dari semua sumber disimpan ke: '{final_data_path}'.")
     
     print("\n=============================================")
     print("Pipeline Selesai.")
+    print("Jalankan dashboard dengan: streamlit run dashboard/app.py")
     print("=============================================")
 
 if __name__ == '__main__':
